@@ -12,13 +12,13 @@ const Users = () => {
     process();
   }, []);
 
-  async function deleteUser(id) {
-    const response = await fetch(`http://localhost:5000/users/${id}`, {
+  async function deleteUser(_id) {
+    const response = await fetch(`http://localhost:5000/users/${_id}`, {
       method: "delete",
     });
     const data = await response.json();
-    if (data === "deleted") {
-      const remainingUsers = users.filter((user) => user.id !== id);
+    if (data.deletedCount > 0) {
+      const remainingUsers = users.filter((user) => user._id !== _id);
       setUsers(remainingUsers);
     } else {
       alert("something went wrong!");
@@ -31,10 +31,10 @@ const Users = () => {
       <h1>users: {users.length}</h1>
       <ul>
         {users?.map((user) => (
-          <li key={user.id}>
-            id:{user.id},name:{user.name}, age:{user.age}
-            <button onClick={() => deleteUser(user.id)}>X</button>
-            <Link to={`/users/update/${user.id}`}>
+          <li key={user._id}>
+            id:{user._id},name:{user.name}, age:{user.age}
+            <button onClick={() => deleteUser(user._id)}>X</button>
+            <Link to={`/users/update/${user._id}`}>
               <button>Edit</button>
             </Link>
           </li>

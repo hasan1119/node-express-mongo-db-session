@@ -22,7 +22,7 @@ const UpdateUser = () => {
     setUser(modifiedUser);
   }
   function updateUser(e) {
-    fetch("http://localhost:5000/update", {
+    fetch(`http://localhost:5000/update/${id}`, {
       method: "put",
       headers: {
         "content-type": "application/json",
@@ -30,7 +30,11 @@ const UpdateUser = () => {
       body: JSON.stringify(user),
     })
       .then((res) => res.json())
-      .then((data) => alert(data));
+      .then((data) => {
+        if (data.modifiedCount > 0) {
+          alert("Updated");
+        }
+      });
     e.preventDefault();
   }
   return (

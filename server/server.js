@@ -1,6 +1,8 @@
 // import
 const express = require("express");
 const cors = require("cors");
+const { MongoClient } = require("mongodb");
+const ObjectId = require("mongodb").ObjectId;
 
 // initialize
 const app = express();
@@ -12,52 +14,79 @@ const port = 5000;
 app.use(cors());
 app.use(express.json());
 
-// fake db
-let users = [];
-
 // root get api
 app.get("/", (req, res) => {
   res.send("your server is running");
 });
 
-// users: get api
-app.get("/users", (req, res) => {
-  res.send(users);
+const uri =
+  "mongodb+srv://user_management:hasan_1119@cluster0.pkqud.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-// single user get api
-app.get("/users/:id", (req, res) => {
-  const id = req.params.id;
-  const findingUser = users.find((user) => user.id === Number(id)) || {};
-  res.send(findingUser);
-});
+async function run() {
+  try {
+    await client.connect();
+    const database = client.db("user_management");
+    const users_collection = database.collection("users");
 
-// user add post api
-app.post("/users/add", (req, res) => {
-  const user = req.body;
-  const id = parseInt(Math.random() * 1000000000);
-  const modifiedUser = { id: id, name: user.name, age: user.age };
-  users.push(modifiedUser);
-  res.json("user added");
-});
+    // user add api
+    app.post("/users/add", async (req, res) => {
+      const user = req.body;
+      const result = await users_collection.insertOne(user);
+      console.log(`A document was inserted with the _id: ${result.insertedId}`);
+      res.json("user added");
+    });
 
-// user delete api
-app.delete("/users/:id", (req, res) => {
-  const id = req.params.id;
-  const remainingUser = users.filter((user) => user.id !== Number(id));
-  users = remainingUser;
-  res.json("deleted");
-});
+    // users: get api
+    app.get("/users", async (req, res) => {
+      const cursor = users_collection.find({});
+      const users = await cursor.toArray();
+      res.send(users);
+    });
 
-// update user put api
-app.put("/update", (req, res) => {
-  const selectedUser = req.body;
-  const updatedUsers = users.filter(
-    (user) => user.id !== Number(selectedUser.id)
-  );
-  updatedUsers.push(selectedUser);
-  users = updatedUsers;
-  res.json("updated");
+    // user delete api
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await users_collection.deleteOne(query);
+
+      res.json(result);
+    });
+
+    // single user get api
+    app.get("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const user = await users_collection.findOne(query);
+      res.send(user);
+    });
+
+    // update user put api
+    app.put("/update/:id", async (req, res) => {
+      const { name, age } = req.body;
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const options = { upsert: true };
+
+      const updateUser = {
+        $set: {
+          name,
+          age,
+        },
+      };
+
+      const result = await users_collection.updateOne(query, updateUser);
+      res.json(result);
+    });
+  } finally {
+  }
+}
+
+run().catch((err) => {
+  console.log(err);
 });
 
 app.listen(port, () => console.log("server is running on port", port));
